@@ -1,0 +1,6 @@
+This is sample file 1 for the serverless application demo.
+It will be uploaded to the S3 bucket during CDK deployment.
+
+Contents:
+- Demonstrates automatic file upload via BucketDeployment construct
+- Used to verify that the Lambda can list bucket objects
