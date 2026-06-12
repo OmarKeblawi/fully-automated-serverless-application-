@@ -1,0 +1,6 @@
+This is sample file 2 for the serverless application demo.
+
+Key facts:
+- Uploaded automatically during 'cdk deploy'
+- Lambda function will list this object and include it in the SNS notification
+- The S3 bucket uses server-side encryption (SSE-S3)

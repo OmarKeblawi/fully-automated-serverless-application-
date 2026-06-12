@@ -1,0 +1,66 @@
+name: Deploy Serverless Application
+
+on:
+  workflow_dispatch:
+    inputs:
+      notification_email:
+        description: "Email address to receive SNS notifications"
+        required: true
+        default: "your-email@example.com"
+
+permissions:
+  id-token: write   # required for OIDC auth
+  contents: read
+
+jobs:
+  deploy:
+    name: CDK Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Python setup ────────────────────────────────────────────────────────
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # ── Node.js (required by AWS CDK CLI) ───────────────────────────────────
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # ── Install CDK CLI ─────────────────────────────────────────────────────
+      - name: Install AWS CDK CLI
+        run: npm install -g aws-cdk
+
+      # ── Install Python dependencies ─────────────────────────────────────────
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      # ── Configure AWS credentials via OIDC ─────────────────────────────────
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      # ── Bootstrap CDK (idempotent) ──────────────────────────────────────────
+      - name: CDK Bootstrap
+        run: cdk bootstrap
+        env:
+          CDK_DEFAULT_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      # ── Deploy the stack ────────────────────────────────────────────────────
+      - name: CDK Deploy
+        run: |
+          cdk deploy --require-approval never \
+            --context notification_email="${{ github.event.inputs.notification_email }}"
+        env:
+          CDK_DEFAULT_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          NOTIFICATION_EMAIL: ${{ github.event.inputs.notification_email }}
